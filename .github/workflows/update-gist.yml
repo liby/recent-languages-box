@@ -1,0 +1,33 @@
+name: "Update Gist"
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install GitHub Linguist
+        run: |
+          sudo apt-get update
+          sudo apt-get install cmake pkg-config libicu-dev zlib1g-dev libcurl4-openssl-dev libssl-dev ruby-dev
+          sudo gem install github-linguist
+
+      - name: Install dependencies
+        run: bun i
+
+      - run: bun start
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GIST_ID: ${{ vars.GIST_ID }}
+          USERNAME: ${{ github.actor }}
