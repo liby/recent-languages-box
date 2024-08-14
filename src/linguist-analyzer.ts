@@ -81,10 +81,7 @@ export const runLinguist = async (files: FileData[]): Promise<ProcessedLanguageS
 
     await Promise.all([
       ...processFileData.map((file) =>
-        fs.writeFile(
-          file.path,
-          createFileContent(file)
-        )
+        fs.writeFile(file.path, createFileContent(file))
       ),
       runCommand(`echo "*.* linguist-detectable" > .gitattributes`),
       runCommand(`git config user.name "dummy" && git config user.email "dummy@github.com"`),
@@ -98,26 +95,39 @@ export const runLinguist = async (files: FileData[]): Promise<ProcessedLanguageS
     const stdout = await runCommand("github-linguist --breakdown --json");
     const linguistResult = JSON.parse(stdout) as LinguistResult;
 
-    const languageStats = Object.entries(linguistResult)
-      .reduce<ProcessedLanguageStats[]>((languageStat, [name, stats]) => {
-        languageStat.push({
+    // Process the language stats
+    const languageStats = Object.entries(linguistResult).map(([name, stats]) => {
+      const additions = stats.files.reduce(
+        (sum, filePath) => sum + (pathFileMap[filePath]?.additions ?? 0),
+        0
+      );
+      const deletions = stats.files.reduce(
+        (sum, filePath) => sum + (pathFileMap[filePath]?.deletions ?? 0),
+        0
+      );
+      return {
         name,
-          percent: +stats.percentage,
-          additions: stats.files.reduce(
-            (sum, filePath) => sum + (pathFileMap[filePath]?.additions ?? 0),
-          0
-        ),
-          deletions: stats.files.reduce(
-            (sum, filePath) => sum + (pathFileMap[filePath]?.deletions ?? 0),
-          0
-        ),
-          count: stats.files.length,
-      });
-        return languageStat;
-    }, [])
-    .sort((a, b) => b.percent - a.percent);
+        additions,
+        deletions,
+        count: stats.files.length,
+        // Calculate initial percent based on the returned data
+        percent: (additions + deletions) // placeholder for percent, will be recalculated
+      };
+    });
 
-    return languageStats;
+    // Calculate total additions and deletions across all languages
+    const totalChanges = languageStats.reduce(
+      (sum, lang) => sum + lang.additions + lang.deletions,
+      0
+    );
+
+    // Update the percent based on the total changes
+    languageStats.forEach(lang => {
+      lang.percent = ((lang.additions + lang.deletions) / totalChanges) * 100;
+    });
+
+    // Sort the language stats by the total changes
+    return languageStats.sort((a, b) => b.percent - a.percent);
   } finally {
     // Clean up
     process.chdir('..');

@@ -50,7 +50,7 @@ export const createLanguageStats = (languages: ProcessedLanguageStats[]): string
       const formatChanges = `${formattedAdditions} /${formattedDeletions}`;
 
       const bar = generateBarChart(percent, 18);
-      const percentageString = percent.toFixed(1).padStart(5) + '%';
+      const percentageString = percent.toFixed(2).padStart(5) + '%';
 
       return `${truncatedName} ${formatChanges} ${bar} ${percentageString}`;
     })
