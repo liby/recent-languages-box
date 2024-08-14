@@ -1,4 +1,4 @@
-import type { ProcessedLanguageStats } from "./linguist-analyzer";
+import type { ProcessedLanguageStats } from './linguist-analyzer';
 
 const UNITS = [
   { symbol: 'E', value: 1e18 },
@@ -24,7 +24,7 @@ const formatNumber = (num: number): string => {
 };
 
 const generateBarChart = (percent: number, size: number): string => {
-  const symbols = "░▏▎▍▌▋▊▉█";
+  const symbols = '░▏▎▍▌▋▊▉█';
   const fractionComplete = Math.floor((size * 8 * percent) / 100);
   const fullBars = Math.floor(fractionComplete / 8);
 
@@ -40,7 +40,9 @@ const generateBarChart = (percent: number, size: number): string => {
   );
 };
 
-export const createLanguageStats = (languages: ProcessedLanguageStats[]): string => {
+export const createLanguageStats = (
+  languages: ProcessedLanguageStats[],
+): string => {
   return languages
     .map(({ name, percent, additions, deletions }) => {
       const truncatedName = truncateString(name, 10).padEnd(10);
@@ -50,7 +52,7 @@ export const createLanguageStats = (languages: ProcessedLanguageStats[]): string
       const formatChanges = `${formattedAdditions} /${formattedDeletions}`;
 
       const bar = generateBarChart(percent, 18);
-      const percentageString = percent.toFixed(2).padStart(5) + '%';
+      const percentageString = `${percent.toFixed(2).padStart(5)}%`;
 
       return `${truncatedName} ${formatChanges} ${bar} ${percentageString}`;
     })
