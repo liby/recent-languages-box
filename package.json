@@ -6,9 +6,11 @@
     "start": "bun src/index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
+    "@octokit/types": "^13.5.0",
+    "@types/bun": "latest",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@octokit/request": "^9.1.3"
   }
 }

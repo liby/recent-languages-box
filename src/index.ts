@@ -1,9 +1,8 @@
-import { GithubApiClient } from "./github-api-client.js";
-import { createLanguageStats } from "./language-stats.js";
+import { githubRequest } from "./github-api-client";
+import { createLanguageStats } from "./language-stats";
 import { runLinguist, type FileData } from "./linguist-analyzer";
-import type { GitHubCommit } from "./types/commit";
-import type { GitHubEvent, PushEvent } from "./types/event";
-import type { Gist } from "./types/gist";
+import type { GetCommitContentsResponse } from "./types/commit";
+import type { CommonEvent, PushEvent } from "./types/event";
 
 const { GH_TOKEN, GIST_ID, USERNAME, DAYS } = process.env;
 
@@ -14,22 +13,23 @@ const validateEnv = (): void => {
 };
 
 const fetchCommits = async (
-  api: GithubApiClient,
   username: string,
   fromDate: Date
-): Promise<GitHubCommit[]> => {
+): Promise<GetCommitContentsResponse[]> => {
   const maxEvents = 300;
   const perPage = 100;
   const pages = Math.ceil(maxEvents / perPage);
-  const commits: GitHubCommit[] = [];
+  const commits: GetCommitContentsResponse[] = [];
 
   for (let page = 0; page < pages; page++) {
-    const events = await api.fetch<GitHubEvent[]>(
-      `/users/${username}/events?per_page=${perPage}&page=${page}`
+    const events = await githubRequest("GET /users/{username}/events", {
+      username,
+      per_page: perPage,
+      page,
+    })
+    const pushEvents = events.data.filter(
+      (event): event is PushEvent => event.type === "PushEvent" && event.actor.login === username
     );
-    const pushEvents = events.filter(
-      ({ type, actor }) => type === "PushEvent" && actor.login === username
-    ) as PushEvent[];
 
     const recentPushEvents = pushEvents.filter(
       ({ created_at }) => new Date(created_at) > fromDate
@@ -40,14 +40,20 @@ const fetchCommits = async (
       recentPushEvents.flatMap(({ repo, payload }) =>
         payload.commits
           .filter((commit) => commit.distinct === true)
-          .map((commit) => api.fetch<GitHubCommit>(`/repos/${repo.name}/commits/${commit.sha}`))
+          .map((commit) => githubRequest("GET /repos/{owner}/{repo}/commits/{ref}", {
+            owner: repo.name.split("/")[0],
+            repo: repo.name.split("/")[1],
+            ref: commit.sha,
+          }))
       )
     );
 
     commits.push(
       ...newCommits
-        .filter((result): result is PromiseFulfilledResult<GitHubCommit> => result.status === "fulfilled")
-        .map((result) => result.value)
+        .filter((result) => result.status === "fulfilled")
+        .map((result) => {
+          return result.value.data
+        })
     );
 
     if (recentPushEvents.length < pushEvents.length) {
@@ -58,7 +64,7 @@ const fetchCommits = async (
   return commits;
 };
 
-const processCommits = (commits: GitHubCommit[]): FileData[] => {
+const processCommits = (commits: GetCommitContentsResponse[]): FileData[] => {
 
   const result = commits
     .filter((commit) => commit.parents.length <= 1)
@@ -70,17 +76,20 @@ const processCommits = (commits: GitHubCommit[]): FileData[] => {
         changes,
         status,
         patch,
-      }) as FileData)
+      }))
     )
     .filter((fileData) => fileData !== undefined);
 
   return result;
 };
 
-const updateGist = async (api: GithubApiClient, gistId: string, content: string) => {
-  const gist = await api.fetch<Gist>(`/gists/${gistId}`);
-  const filename = Object.keys(gist.files)[0];
-  await api.fetch<Gist>(`/gists/${gistId}`, "PATCH", {
+const updateGist = async (gistId: string, content: string) => {
+  const gist = await githubRequest("GET /gists/{gist_id}", {
+    gist_id: gistId,
+  });
+  const filename = Object.keys(gist.data.files!)[0];
+  await githubRequest("PATCH /gists/{gist_id}", {
+    gist_id: gistId,
     files: {
       [filename]: {
         filename: `Bryan’s Recent Coding Languages`,
@@ -95,7 +104,6 @@ const main = async () => {
   try {
     validateEnv();
 
-    const api = new GithubApiClient(GH_TOKEN!);
     const username = USERNAME!;
     const days = Math.max(1, Math.min(30, Number(DAYS || 14)));
     const fromDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -103,7 +111,7 @@ const main = async () => {
     console.log(`Username: ${username}`);
     console.log(`Fetching data for the last ${days} days`);
 
-    const commits = await fetchCommits(api, username, fromDate);
+    const commits = await fetchCommits(username, fromDate);
     console.log(`${commits.length} commits fetched.`);
     console.log(`\n`);
 
@@ -119,8 +127,7 @@ const main = async () => {
     console.log(content);
     console.log(`\n`);
 
-    await updateGist(api, GIST_ID!, content);
-
+    await updateGist(GIST_ID!, content);
   } catch (e) {
     console.error(e);
     process.exitCode = 1;
