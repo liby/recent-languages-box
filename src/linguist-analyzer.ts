@@ -54,6 +54,24 @@ const runCommand = (command: string): Promise<string> =>
     });
   });
 
+const runCommandWithRetry = async (
+  command: string,
+  retries = 3,
+): Promise<string> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await runCommand(command);
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      console.warn(
+        `Command failed, retrying (${i + 1}/${retries}): ${command}`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // 等待1秒后重试
+    }
+  }
+  throw new Error(`Command failed after ${retries} retries: ${command}`);
+};
+
 const createDummyText = (count: number): string => {
   return '\n'.repeat(count);
 };
@@ -92,14 +110,16 @@ export const runLinguist = async (
       ...processFileData.map((file) =>
         writeFile(file.path, createFileContent(file)),
       ),
-      runCommand('echo "*.* linguist-detectable" > .gitattributes'),
-      runCommand('git config user.name "dummy"'),
-      runCommand('git config user.email "dummy@github.com"'),
+      await runCommandWithRetry(
+        'echo "*.* linguist-detectable" > .gitattributes',
+      ),
+      await runCommandWithRetry(
+        'git config user.name "dummy" && git config user.email "dummy@github.com"',
+      ),
     ]);
 
     // Add files to git
-    await runCommand('git add .');
-    await runCommand('git commit -m "dummy commit"');
+    await runCommand('git add . && git commit -m "dummy"');
 
     // Run github-linguist
     const stdout = await runCommand('github-linguist --breakdown --json');
