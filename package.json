@@ -7,8 +7,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@octokit/types": "13.8.0",
-    "@types/bun": "1.2.4",
+    "@octokit/types": "13.10.0",
+    "@types/bun": "1.2.8",
     "typescript": "5.8.2"
   },
   "dependencies": {
