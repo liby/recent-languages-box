@@ -8,11 +8,11 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@octokit/types": "13.10.0",
-    "@types/bun": "1.2.8",
-    "typescript": "5.8.2"
+    "@types/bun": "1.2.11",
+    "typescript": "5.8.3"
   },
   "dependencies": {
-    "@octokit/request": "9.2.2"
+    "@octokit/request": "9.2.3"
   },
   "packageManager": "bun@1.1.6"
 }
