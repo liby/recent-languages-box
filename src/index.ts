@@ -37,7 +37,10 @@ const fetchCommits = async (
     );
 
     const recentPushEvents = pushEvents.filter(
-      ({ created_at }) => new Date(created_at) > fromDate,
+      ({ created_at, payload }) =>
+        new Date(created_at) > fromDate &&
+        payload.commits &&
+        Array.isArray(payload.commits),
     );
     console.log(`${recentPushEvents.length} events fetched.`);
 

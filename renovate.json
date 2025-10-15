@@ -9,14 +9,25 @@
   ],
   "packageRules": [
     {
-      "description": "Automerge non-major updates",
-      "groupName": "Automerge Non-major Updates",
-      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "all non-major dependencies",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
     },
     {
       "matchUpdateTypes": ["lockFileMaintenance"],
       "automerge": true
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^biome\\.json$"],
+      "matchStrings": [
+        "\"\\$schema\":\\s*\"https://biomejs\\.dev/schemas/(?<currentValue>[^/]+)/schema\\.json\""
+      ],
+      "depNameTemplate": "@biomejs/biome",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
     }
   ],
   "platformAutomerge": true,
