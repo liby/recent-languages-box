@@ -37,25 +37,40 @@ const fetchCommits = async (
     );
 
     const recentPushEvents = pushEvents.filter(
-      ({ created_at, payload }) =>
-        new Date(created_at) > fromDate &&
-        payload.commits &&
-        Array.isArray(payload.commits),
+      ({ created_at }) => new Date(created_at) > fromDate,
     );
     console.log(`${recentPushEvents.length} events fetched.`);
 
     const newCommits = await Promise.allSettled(
-      recentPushEvents.flatMap(({ repo, payload }) =>
-        payload.commits
-          .filter((commit) => commit.distinct === true)
-          .map((commit) =>
+      recentPushEvents.flatMap(({ repo, payload }) => {
+        const [owner, repoName] = repo.name.split('/');
+
+        // Use payload.commits if available, otherwise fetch the head commit directly
+        if (payload.commits && Array.isArray(payload.commits)) {
+          return payload.commits
+            .filter((commit) => commit.distinct === true)
+            .map((commit) =>
+              githubRequest('GET /repos/{owner}/{repo}/commits/{ref}', {
+                owner,
+                repo: repoName,
+                ref: commit.sha,
+              }),
+            );
+        }
+
+        // Fallback: use head SHA from payload to fetch the commit directly
+        if (payload.head) {
+          return [
             githubRequest('GET /repos/{owner}/{repo}/commits/{ref}', {
-              owner: repo.name.split('/')[0],
-              repo: repo.name.split('/')[1],
-              ref: commit.sha,
+              owner,
+              repo: repoName,
+              ref: payload.head,
             }),
-          ),
-      ),
+          ];
+        }
+
+        return [];
+      }),
     );
 
     commits.push(
@@ -103,7 +118,7 @@ const updateGist = async (gistId: string, content: string) => {
     gist_id: gistId,
     files: {
       [filename]: {
-        filename: 'Bryan’s Recent Coding Languages',
+        filename: "Bryan's Recent Coding Languages",
         content,
       },
     },
@@ -127,6 +142,11 @@ const main = async () => {
     console.log('\n');
 
     const files = processCommits(commits);
+    if (files.length === 0) {
+      console.log('No file changes found. Skipping gist update.');
+      return;
+    }
+
     const langs = await runLinguist(files);
     console.log('\nLanguage statistics:');
     for (const lang of langs) {

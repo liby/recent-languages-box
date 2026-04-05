@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -25,7 +25,6 @@ jobs:
           sudo apt-get install -y cmake pkg-config libicu-dev zlib1g-dev libcurl4-openssl-dev libssl-dev ruby-dev
 
       - name: Install GitHub Linguist
-        if: steps.cache-linguist.outputs.cache-hit != 'true'
         run: sudo gem install github-linguist
 
       - name: Install dependencies

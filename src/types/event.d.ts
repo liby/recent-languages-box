@@ -22,7 +22,7 @@ interface PushEventPayload {
   ref: string;
   head: string;
   before: string;
-  commits: PushEventCommit[];
+  commits?: PushEventCommit[];
 }
 
 export interface PushEvent extends CommonEvent {

@@ -21,11 +21,21 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^biome\\.json$"],
+      "managerFilePatterns": ["^biome\\.json$"],
       "matchStrings": [
         "\"\\$schema\":\\s*\"https://biomejs\\.dev/schemas/(?<currentValue>[^/]+)/schema\\.json\""
       ],
       "depNameTemplate": "@biomejs/biome",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["(^|/)package\\.json$"],
+      "matchStrings": [
+        "\"packageManager\":\\s*\"bun@(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+      ],
+      "depNameTemplate": "bun",
       "datasourceTemplate": "npm",
       "versioningTemplate": "npm"
     }
