@@ -35,3 +35,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GIST_ID: ${{ vars.GIST_ID }}
           USERNAME: ${{ github.actor }}
+
+  # Re-enable this scheduled workflow on every run so GitHub does not disable it
+  # after 60 days of repository inactivity.
+  keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
